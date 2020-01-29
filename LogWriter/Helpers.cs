@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -11,17 +13,26 @@ namespace LogWriter
 {
     class Helpers
     {
-        internal static int[] GetWebPrices(HtmlDocument document, string[] ores)
+        internal static double[] GetWebPrices(string text, string[] ores)
         {
-            string[] htmlText = document.Body.OuterText.Split(new char[] { '\n' } );
-            int[] Prices = new int[16];
-            int jOld = 0;
+            var regex = new Regex(@"^(?<price>\d+\.\d+) ISK");
+            string[] htmlText = text.Split(new char[] { '\n' } );
+            double[] Prices = new double[16];
+            int position = 0;
             int countOfPrices = 0;
             for (int i = 0; i<ores.Length; i++)
             {
-                for(int j = jOld; j< htmlText.Length; j++)
+                for(int j = position; j< htmlText.Length; j++)
                 {
-                    if (htmlText[j].Contains(','))
+                    Match match = regex.Match(htmlText[j]);
+                    if (match.Success)
+                    {
+                        Prices[countOfPrices] = Convert.ToDouble(match.Groups["price"].Value.Replace(".", ","));
+                        countOfPrices++;
+                        position = j + 4;
+                        break;
+                    }
+                    /*if (htmlText[j].Contains(','))
                     {
                         try
                         {
@@ -35,7 +46,7 @@ namespace LogWriter
                         if (countOfPrices == 16)
                             break;
                         jOld = j;
-                    }                    
+                    }             */       
                 }
                 if (countOfPrices == 16)
                     break;

@@ -12,6 +12,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Threading;
+using CefSharp;
 
 namespace LogWriter
 {
@@ -24,28 +26,20 @@ namespace LogWriter
                 "Mercoxit", "Omber", "Plagioclase",
                 "Pyroxeres", "Scordite",
                 "Spodumain", "Veldspar"};
-        int[] Prices = new int[16];
+        double[] Prices = new double[16];
 
         public Form1()
         {
             InitializeComponent();
-            this.webBrowser1.ObjectForScripting = new MyScript();
+            //this.webBrowser1.ObjectForScripting = new MyScript();
             toolStripStatusLabel1.Text = "Готов";
-        }
-
-        [ComVisible(true)]
-        public class MyScript
-        {
-            public void CallServerSideCode()
-            {
-                var doc = ((Form1)Application.OpenForms[0]).webBrowser1.Document;
-            }
+            webBrowser1.LoadingStateChanged += WebBrowser1_LoadingStateChanged;
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
             toolStripStatusLabel1.Text = "Работаю";
-            UserContext usr = new UserContext();
+            /*UserContext usr = new UserContext();
             openFileDialog1.ShowDialog();
             List<LogPosition> localList = new List<LogPosition>();
             DateTime uploadTime = DateTime.UtcNow;
@@ -131,6 +125,7 @@ namespace LogWriter
             }
             usr.SaveChanges();
             usr.Dispose();
+            */
             toolStripStatusLabel1.Text = "Загрузка успешна";
         }
 
@@ -146,7 +141,7 @@ namespace LogWriter
             DateTime fromDate = makeFromDate(dateTimePicker1.Value);
             DateTime toDate = makeToDate(dateTimePicker2.Value);
             string outString = "";
-            using (UserContext db = new UserContext())
+            /*using (UserContext db = new UserContext())
             {
                 IQueryable<IGrouping<string, LogPosition>> groups = null;
                 try
@@ -173,7 +168,7 @@ namespace LogWriter
                     }
                     outString += '\n';
                 }
-            }
+            }*/
             if (outString.Length < 5)
             {
                 richTextBox1.Text = "";
@@ -210,39 +205,35 @@ namespace LogWriter
             toolStripStatusLabel1.Text = "Работаю";
             DateTime fromDate = makeFromDate(dateTimePicker1.Value);
             DateTime toDate = makeToDate(dateTimePicker2.Value);
-            using (UserContext db = new UserContext())
+            /*using (UserContext db = new UserContext())
             {
                 foreach (LogPosition pos in db.Logs.Where(p => (p.Time > fromDate && p.Time < toDate)))
                 {
                     db.Entry(pos).State = System.Data.Entity.EntityState.Deleted;
                 }
                 db.SaveChanges();
-            }
+            }*/
             richTextBox1.Text = "";
             toolStripStatusLabel1.Text = "База очищена";
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
-            webBrowser1.ScriptErrorsSuppressed = true;
-            webBrowser1.Navigate("https://ore.cerlestes.de/#site:ore");
-            timer1.Enabled = true;
+            webBrowser1.Load("https://ore.cerlestes.de/#site:ore");
+            webBrowser1.Refresh();
             toolStripStatusLabel1.Text = "Загрузка цен";
         }
 
-        private void timer1_Tick(object sender, EventArgs e)
+        private async void WebBrowser1_LoadingStateChanged(object sender, LoadingStateChangedEventArgs e)
         {
-            if (webBrowser1.ReadyState == WebBrowserReadyState.Complete)
+            if (e.IsLoading == false)
             {
-                timer1.Enabled = false;
+                IBrowser browser = e.Browser;
+                string text = await browser.MainFrame.GetTextAsync()
+                    .ConfigureAwait(false);
+                Prices = Helpers.GetWebPrices(text, Ores);
+                Invoke(new Action(UpdatePricesFromMemory));
                 toolStripStatusLabel1.Text = "Цены загружены";
-                Prices = Helpers.GetWebPrices(webBrowser1.Document, Ores);
-                UpdatePricesFromMemory();
-            }
-            else
-            {
-                timer1.Enabled = false;
-                toolStripStatusLabel1.Text = "Тайм-аут операции";
             }
         }
 
@@ -332,7 +323,7 @@ namespace LogWriter
 
             double sumOut = 0;
 
-            using (UserContext db = new UserContext())
+            /*using (UserContext db = new UserContext())
             {
                 dataGridView1.Rows.Add("Администраторы", coeffAdmin * 100 + "%");
                 //Получуние итого для администарторов
@@ -404,7 +395,7 @@ namespace LogWriter
                 }
                 dataGridView1.Rows.Add("Корпа получила", (sum1 - sumOut).ToString("N", CultureInfo.CreateSpecificCulture("es-ES")));
                 dataGridView1.Rows.Add("Итого", sum1.ToString("N", CultureInfo.CreateSpecificCulture("es-ES")));
-            }
+            }*/
         }
 
         private double GetSum(string OreType, int count)
@@ -425,7 +416,7 @@ namespace LogWriter
             DateTime fromDate = makeFromDate(dateTimePicker1.Value);
             DateTime toDate = makeToDate(dateTimePicker2.Value);
             comboBox1.Items.Clear();
-            using (UserContext db = new UserContext())
+            /*using (UserContext db = new UserContext())
             {
                 try
                 {
@@ -444,7 +435,7 @@ namespace LogWriter
                     MessageBox.Show("Ошибка подключения к БД", "Ошибка");
                     return;
                 }
-            }
+            }*/
         }
 
         private void button6_Click(object sender, EventArgs e)
@@ -456,7 +447,7 @@ namespace LogWriter
             DateTime fromDate = makeFromDate(dateTimePicker1.Value);
             DateTime toDate = makeToDate(dateTimePicker2.Value);
             string outString = "";
-            using (UserContext db = new UserContext())
+            /*using (UserContext db = new UserContext())
             {
                 IQueryable<LogPosition> g = null;
                 try
@@ -477,7 +468,7 @@ namespace LogWriter
                     outString += String.Format("{0} - {1}\n", p.First().OreType, sum);
                 }
                 outString += '\n';
-            }
+            }*/
             richTextBox1.Text = outString;
         }
 
@@ -491,7 +482,7 @@ namespace LogWriter
             toolStripStatusLabel1.Text = "Работаю";
             DateTime fromDate = makeFromDate(dateTimePicker1.Value);
             DateTime toDate = makeToDate(dateTimePicker2.Value);
-            using (UserContext db = new UserContext())
+            /*using (UserContext db = new UserContext())
             {
                 DateTime lastTime = db.Logs.Max(x => x.UploadTime);
                 foreach (LogPosition pos in db.Logs.Where(p => (p.UploadTime == lastTime)))
@@ -499,7 +490,7 @@ namespace LogWriter
                     db.Entry(pos).State = System.Data.Entity.EntityState.Deleted;
                 }
                 db.SaveChanges();
-            }
+            }*/
             richTextBox1.Text = "";
             toolStripStatusLabel1.Text = "База очищена";
         }
